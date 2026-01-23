@@ -15,6 +15,11 @@ library(glmmTMB)
 
 calc_liver_energy <- function(prop_lipid, liver_mass, lean_protein_ed = 23.6, lipid_ed = 39.5) {
   
+  prop_lipid <- pcod_results$dat_complete_liver$P_LIVLIPID
+  liver_mass <- pcod_results$dat_complete_liver$LIVER_WT_G
+  lean_protein_ed = 23.6
+  lipid_ed = 39.5
+  
   lipid_mass <- liver_mass * prop_lipid
   other_mass <- liver_mass - lipid_mass
   lipid_energy <- lipid_mass * lipid_ed
@@ -222,6 +227,8 @@ dharma_plots <-
     
   }
 
+# Setup data.frames for prediction 
+
 # GLM fitting functions ----------------------------------------------------------------------------
 fit_beta_glm <- function(x, formulas_df, common_name, model_name_prefix = "m") {
   
@@ -254,10 +261,13 @@ fit_beta_glm <- function(x, formulas_df, common_name, model_name_prefix = "m") {
   
   model_list <- model_list[pass]
   
+  # pred_newdata <- make_prediction_vars(x = x)
+  
+  # prediction_list <- make_predictions(model_list = model_list, x = pred_newdata)
+  
   loocv_out <- run_loocv(model_list = model_list, dat = x)
   
   loocv_table <- loocv_out$loocv
-  # loocv_table$model_name <- paste0(model_name_prefix, "_", loocv_table$model_name)
   
   fits <- loocv_out$fit
   
@@ -283,8 +293,20 @@ fit_beta_glm <- function(x, formulas_df, common_name, model_name_prefix = "m") {
 
 # Make predictions ----
 
+# make_predictions <- function(model_list, x) {
+#   
+#   lapply(names(model_list), function(m_name) {
+#     mod <- model_list[[m_name]]
+#     
+#     any(grepl(pattern = "HSI_PCT", x = names(fixef(wp_results$results_liver_lipid$model_list$liver_17)$cond)))
+#     
+#   }
+#   
+# }
+
 predict_fits <- 
-  function(model, newdata, re.form = NA, allow.new.levels = TRUE, ...) {
+  function(model, newdata, re.form = NULL, 
+           allow.new.levels = TRUE, ...) {
     
     invlink_fn <- model$modelInfo$family$linkinv
     
@@ -292,7 +314,7 @@ predict_fits <-
       obj = model, 
       newdata = newdata, 
       type = "link",
-      re.form = re.form, # No random effects-- population level
+      re.form = re.form,
       allow.new.levels = allow.new.levels,# Allow for new levels,
       se.fit = TRUE
     )
@@ -326,9 +348,11 @@ for(ii in 1:length(spp_abbv)) {
   
   sel_species <- spp_abbv[ii]
   
-  common_name <- ifelse(sel_species == "WP", "walleye pollock", "Pacific cod")
+  common_name <- sel_common_name <- ifelse(sel_species == "WP", "walleye pollock", "Pacific cod")
   
-  esr_min_length_mm <- ifelse(sel_species == "WP", 250, 0)
+  # Set minimum length for calculating LW residuals
+  esr_min_length_mm <- 0
+  # esr_min_length_mm <- ifelse(sel_species == "WP", 250, 0)
   
   dat <- readxl::read_xlsx(path = "./data/fatmeter_data_dec_2025.xlsx", sheet = sel_species) %>%
     rename_with(~ .x %>%
@@ -393,7 +417,7 @@ for(ii in 1:length(spp_abbv)) {
     dplyr::filter(
       sex == 2, 
       year %in% unique(morph_dat$year), 
-      common_name == common_name, 
+      common_name == sel_common_name, 
       length_mm >= esr_min_length_mm
     ) |>
     dplyr::mutate(
@@ -409,7 +433,6 @@ for(ii in 1:length(spp_abbv)) {
   combined_dat <- dplyr::bind_rows(morph_dat, akfishcondition_dat)
   
   # Linear regression between log-length and log-weight
-  
   
   lw_mod <- lm(formula = log(weight_g)~log(length_mm), data = combined_dat)
   lw_fit <- predict(lw_mod, newdata = morph_dat, se.fit = TRUE)
@@ -438,17 +461,6 @@ for(ii in 1:length(spp_abbv)) {
         P_LIVLIPID ~ poly(LOG_LW_RESID, 1) + (1|UNIQUE_HAUL) + (1|YEAR_FAC) + (0 + LENGTH_CM | SPECIES),
         P_LIVLIPID ~ poly(LOG_LW_RESID, 2) + (1|UNIQUE_HAUL) + (1|YEAR_FAC) + (0 + LENGTH_CM | SPECIES),
         P_LIVLIPID ~ poly(LOG_LW_RESID, 3) + (1|UNIQUE_HAUL) + (1|YEAR_FAC) + (0 + LENGTH_CM | SPECIES)
-        # P_LIVLIPID ~ 1 + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM  + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(DISTELL_LIVER, 1) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(DISTELL_LIVER, 2) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(DISTELL_LIVER, 3) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(HSI_PCT, 1) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(HSI_PCT, 2) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(HSI_PCT, 3) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(LOG_LW_RESID, 1) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(LOG_LW_RESID, 2) + (1|UNIQUE_HAUL) + (1|YEAR_FAC),
-        # P_LIVLIPID ~ LENGTH_CM + poly(LOG_LW_RESID, 3) + (1|UNIQUE_HAUL) + (1|YEAR_FAC)
       ),
       disp = c(~1, ~log(LENGTH_CM))
     )
