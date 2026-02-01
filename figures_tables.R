@@ -1,5 +1,6 @@
 library(akgfmaps)
 library(ggpp)
+library(GGally)
 
 
 # Best P_liver lipid models -----
@@ -401,7 +402,9 @@ plot_cor_grid <- function(data, mapping, ...) {
     theme(panel.background = element_rect(fill = "white", color = "grey90"))
 }
 
-df <- pcod_results$dat_complete_liver |>
+# Pacific cod grid
+
+df_pcod <- pcod_results$dat_complete_liver |>
   dplyr::select(
     HSI = HSI_PCT, 
     `Liv. lipid` = LIVLIPID, 
@@ -412,9 +415,9 @@ df <- pcod_results$dat_complete_liver |>
     )
 
 # Generate the plot
-p_cor_grid <- 
-  ggpairs(df,
-        upper = list(continuous = plot_cor_mat),
+p_cor_grid_pcod <- 
+  ggpairs(df_pcod,
+        upper = list(continuous = plot_cor_grid),
         lower = list(continuous = wrap("points", alpha = 0.6, color = "steelblue")),
         diag = list(continuous = wrap("densityDiag", fill = "steelblue", color = NA))
 ) +
@@ -434,8 +437,47 @@ p_cor_grid <-
   )
 
 
-png(filename = here::here("plots", "indicator_cor_plot.png"), width = 169, height = 169, units = "mm", res = 300)
-print(p_cor_grid)
+png(filename = here::here("plots",  "Pacific cod", "pcod_indicator_cor_plot.png"), width = 169, height = 169, units = "mm", res = 300)
+print(p_cor_grid_pcod)
+dev.off()
+
+
+# walleye pollock
+
+df_wp <- wp_results$dat_complete_liver |>
+  dplyr::select(
+    HSI = HSI_PCT, 
+    `Liv. lipid` = LIVLIPID, 
+    NLE = RELATIVE_LIVER_ENERGY, 
+    TLE = TOTAL_LIVER_ENERGY,
+    MCI = LOG_LW_RESID, 
+    RCI = RELATIVE_CONDITION
+  )
+
+# Generate the plot
+p_cor_grid_wp <- 
+  ggpairs(df_wp,
+          upper = list(continuous = plot_cor_grid),
+          lower = list(continuous = wrap("points", alpha = 0.6, color = "steelblue")),
+          diag = list(continuous = wrap("densityDiag", fill = "steelblue", color = NA))
+  ) +
+  theme_bw() +
+  theme(
+    axis.text = element_text(size = 8),
+    axis.title = element_text(size = 9),
+    strip.background = element_blank(),
+    strip.text = element_text(size = 8.5),
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 8),
+    legend.key.height = unit(3, units = "mm"),
+    legend.key.width = unit(3, units = "mm"),
+    legend.spacing = unit(2, units = "mm"),
+    legend.position = "inside",
+    legend.position.inside = c(0.95, 0.12)
+  )
+
+png(filename = here::here("plots",  "walleye pollock", "wp_indicator_cor_plot.png"), width = 169, height = 169, units = "mm", res = 300)
+print(p_cor_grid_wp)
 dev.off()
 
   
