@@ -15,11 +15,6 @@ library(glmmTMB)
 
 calc_liver_energy <- function(prop_lipid, liver_mass, lean_protein_ed = 23.6, lipid_ed = 39.5) {
   
-  prop_lipid <- pcod_results$dat_complete_liver$P_LIVLIPID
-  liver_mass <- pcod_results$dat_complete_liver$LIVER_WT_G
-  lean_protein_ed = 23.6
-  lipid_ed = 39.5
-  
   lipid_mass <- liver_mass * prop_lipid
   other_mass <- liver_mass - lipid_mass
   lipid_energy <- lipid_mass * lipid_ed
@@ -354,7 +349,8 @@ for(ii in 1:length(spp_abbv)) {
   esr_min_length_mm <- 0
   # esr_min_length_mm <- ifelse(sel_species == "WP", 250, 0)
   
-  dat <- readxl::read_xlsx(path = "./data/fatmeter_data_dec_2025.xlsx", sheet = sel_species) %>%
+  dat <- readxl::read_xlsx(path = "./data/fatmeter_data_feb_2026.xlsx", sheet = sel_species) %>%
+    dplyr::filter(!(comments == "exclude") | is.na(comments)) %>%
     rename_with(~ .x %>%
                   str_remove_all("[^[:alnum:] ]") %>%
                   str_squish() %>%
@@ -374,6 +370,23 @@ for(ii in 1:length(spp_abbv)) {
       HSI_PCT = LIVER_WT_G/(TOTAL_WT_G-STOMACH_CONTENT_WT_G-OVARY_WT_G)*100,
       GSI_PCT = OVARY_WT_G/(TOTAL_WT_G-STOMACH_CONTENT_WT_G-LIVER_WT_G)*100
     )
+  
+  ggplot() +
+    geom_text(
+    data = dplyr::mutate(dat, index = dplyr::row_number()), 
+    mapping = aes(x = LENGTH_CM, y = TOTAL_WT_G, label = index))
+  
+  p_lw <- ggplot() +
+    geom_point(
+      data = dat, 
+      mapping = aes(x = LENGTH_CM, y = TOTAL_WT_G), size = 0.2) +
+    scale_x_continuous(name = "Fork length (cm)") +
+    scale_y_continuous(name = "Total weight (g)") +
+    theme_bw()
+
+  png(filename = here::here("plots", paste0(sel_species, "_length_weight.png")), width = 80, height = 80, units = "mm", res = 300)
+  print(p_lw)
+  dev.off()
   
   # Relative liver energy
   dat <- cbind(
