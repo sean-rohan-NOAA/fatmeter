@@ -345,9 +345,18 @@ for(ii in 1:length(spp_abbv)) {
   
   common_name <- sel_common_name <- ifelse(sel_species == "WP", "walleye pollock", "Pacific cod")
   
+  sel_species_code <- ifelse(sel_species == "WP", 21740, 21720)
+  
   # Set minimum length for calculating LW residuals
   esr_min_length_mm <- 0
-  # esr_min_length_mm <- ifelse(sel_species == "WP", 250, 0)
+  
+  ftnir_dat <- readxl::read_xlsx("./data/Prohaska_EFH_liver_NIRpreds.xlsx", sheet = 1) |>
+    dplyr::filter(species_code == sel_species_code, region == 'BS') |>
+    dplyr::mutate(common_name = sel_common_name)
+  
+  ftnir_samples <- 
+    ftnir_dat |>
+    dplyr::select(VESSEL = vessel_code, CRUISE = cruise_number, HAUL = haul, LENGTH_MM = length, TOTAL_WT_G = weight)
   
   dat <- readxl::read_xlsx(path = "./data/fatmeter_data_feb_2026.xlsx", sheet = sel_species) %>%
     dplyr::filter(!(comments == "exclude") | is.na(comments)) %>%
@@ -369,12 +378,15 @@ for(ii in 1:length(spp_abbv)) {
       P_MUSLIPID = MUSLIPID/100,
       HSI_PCT = LIVER_WT_G/(TOTAL_WT_G-STOMACH_CONTENT_WT_G-OVARY_WT_G)*100,
       GSI_PCT = OVARY_WT_G/(TOTAL_WT_G-STOMACH_CONTENT_WT_G-LIVER_WT_G)*100
-    )
+    ) |>
+    dplyr::filter(!is.na(LIVLIPID))
   
-  ggplot() +
-    geom_text(
-    data = dplyr::mutate(dat, index = dplyr::row_number()), 
-    mapping = aes(x = LENGTH_CM, y = TOTAL_WT_G, label = index))
+  # Only use the subset of the data that have corresponding FT-NIR samples
+  dat <- dplyr::inner_join(dat, ftnir_samples)
+  
+  # Check for completeness
+  dplyr::anti_join(dat, ftnir_samples)
+  dplyr::anti_join(ftnir_samples, dat)
   
   p_lw <- ggplot() +
     geom_point(
