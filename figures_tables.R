@@ -11,6 +11,37 @@ library(GGally)
 load(here::here("output", paste0("wp_results.rda")))
 load(here::here("output", paste0("pcod_results.rda")))
 
+# Load FTNIR fits
+
+ftnir_data <- 
+  readxl::read_xlsx(path = here::here("data", "Prohaska_EFH_liver_NIRpreds.xlsx")) |>
+  dplyr::filter(region == "BS") |>
+  dplyr::mutate(
+    common_name = ifelse(species_code == 21740, "walleye pollock", "Pacific cod"),
+    name_abbv = ifelse(species_code == 21740, "walleye pollock", "Pacific cod"),
+    category = "FT-NIR",
+  )
+
+ftnir_metrics <- 
+  ftnir_data |>
+  dplyr::mutate(
+    error = Lipid_pred_LOOCV/100-Lipid/100,
+    rel_error = error/Lipid,
+    abs_error = abs(Lipid_pred_LOOCV/100-Lipid/100), 
+    model_name = "PLSR"
+  ) |>
+  dplyr::group_by(
+    common_name, category, model_name
+  ) |>
+  dplyr::summarise(
+    rmse = sqrt(mean(error^2)),
+    mre = mean(abs_error/Lipid),
+    mae = mean(abs_error),
+    r2 = cor(Lipid, Lipid_pred_LOOCV)^2,
+    mean_bias = mean(error)
+  )
+
+
 # Best models table -----
 model_table <- 
   dplyr::bind_rows(
@@ -22,10 +53,44 @@ model_table <-
 
 best_p_livlipid_models <- readxl::read_xlsx(path = here::here("output", "best_p_lipid_models.xlsx"))
 
-
+# Formatting functions ----
 format_value <-
   function(x, digits) {
     format(round(x, digits = digits), nsmall = digits)
+  }
+
+predict_fits <- 
+  function(model, newdata, re.form = NULL, 
+           allow.new.levels = TRUE, ...) {
+    
+    invlink_fn <- model$modelInfo$family$linkinv
+    
+    pred <- predict(
+      obj = model, 
+      newdata = newdata, 
+      type = "link",
+      re.form = re.form,
+      allow.new.levels = allow.new.levels,# Allow for new levels,
+      se.fit = TRUE
+    )
+    
+    pred <- 
+      data.frame(
+        fit = invlink_fn(pred$fit),
+        fit_lwr = invlink_fn(pred$fit - 2 * pred$se.fit),
+        fit_upr = invlink_fn(pred$fit + 2 * pred$se.fit),
+        fit_link = pred$fit,
+        fit_link_se = pred$se.fit
+      )
+    
+    output <- 
+      cbind(
+        newdata,
+        pred
+      )
+    
+    return(output)
+    
   }
 
 p_livlipid_table <- 
@@ -34,6 +99,9 @@ p_livlipid_table <-
 ) |>
   dplyr::select(
     common_name, category, model_name, formula, disp, aic, delta_aic, rmse, mre, mae, r2, mean_bias
+  ) |>
+  dplyr::bind_rows(
+    ftnir_metrics
   ) |>
   dplyr::mutate(
     aic,
@@ -181,8 +249,9 @@ make_prediction_vars <- function(x) {
   
   return(output)
 }
-best_model_fits <- data.frame()
 
+
+best_model_fits <- data.frame()
 
 for(ii in 1:nrow(best_p_livlipid_models)) {
   
@@ -319,7 +388,12 @@ obs_pred <-
       dplyr::mutate(SPECIMEN_NUMBER = as.character(SPECIMEN_NUMBER)),
     pcod_results$results_liver_lipid$fits
     ) |>
-  dplyr::inner_join(best_p_livlipid_models)
+  dplyr::inner_join(best_p_livlipid_models) |>
+  dplyr::bind_rows(
+    ftnir_data |>
+      dplyr::mutate(LIVLIPID = Lipid, fit = Lipid_pred_cal/100) |>
+      dplyr::select(common_name, name_abbv, YEAR = collection_year, LIVLIPID, fit, category)
+  )
 
 obs_pred_labels <-
   p_livlipid_table |>
@@ -352,7 +426,10 @@ p_cond_pred_obs <-
         label = label),
     size = 2.2
   ) +
-  facet_grid(common_name~factor(paste0(category, " GLM"), levels = c("Null GLM", "HSI GLM", "Fatmeter GLM", "Morphometric GLM"))) +
+  facet_grid(common_name~factor(category, 
+    levels = c("Null", "HSI", "Fatmeter", "Morphometric", "FT-NIR"),
+    labels = c("Null GLM", "HSI GLM", "Fatmeter GLM", "Morphometric GLM", "FT-NIR PLSR"))
+  ) +
   scale_y_continuous(name = "Predicted liver lipid (%)") +
   scale_x_continuous(name = "Observed liver lipid (%)") +
   scale_fill_manual(name = "Year", values = c("#40B0A6", "#5D3A9B")) +
