@@ -51,6 +51,7 @@ model_table <-
     dplyr::mutate(name_abbv = "PC")
 )
 
+# Load best models - selected based on AIC and visual inspection of diagnostic plots
 best_p_livlipid_models <- readxl::read_xlsx(path = here::here("output", "best_p_lipid_models.xlsx"))
 
 # Formatting functions ----
@@ -367,10 +368,9 @@ p_livlipid_fit <-
 png(filename = here::here("plots", "p_livlipid_fit_obs.png"), width = 169, height = 90, units = "mm", res = 300)
 print(p_livlipid_fit)
 dev.off()
-  
 
 
-hist(residuals(pcod_results$results_liver_lipid$model_list$liver_9))
+hist(residuals(pcod_results$results_liver_lipid$model_list$liver_12))
 hist(residuals(wp_results$results_liver_lipid$model_list$liver_18))
 
 

@@ -24,11 +24,14 @@ calc_liver_energy <- function(prop_lipid, liver_mass, lean_protein_ed = 23.6, li
   
   energy_density <- total_energy/liver_mass
   
-  return(data.frame(
-    TOTAL_LIPID_ENERGY = lipid_energy,
-    TOTAL_LIVER_ENERGY = total_energy, 
-    LIVER_ENERGY_DENSITY = energy_density
-  ))
+  return(
+    data.frame(
+      TOTAL_LIPID_ENERGY = lipid_energy,
+      TOTAL_LIVER_ENERGY = total_energy, 
+      LIVER_ENERGY_DENSITY = energy_density
+    )
+  )
+  
 }
 
 # Cross validation functions -----------------------------------------------------------------------
@@ -580,4 +583,3 @@ for(ii in 1:length(spp_abbv)) {
   )
   
 }
-
