@@ -337,8 +337,8 @@ p_livlipid_fit <-
     legend.key.height = unit(3, units = "mm"),
     legend.key.width = unit(3, units = "mm"),
     legend.spacing = unit(2, units = "mm"),
-    legend.position = "inside",
-    legend.position.inside = c(0.95, 0.12)
+    legend.position = "bottom"
+    # legend.position.inside = c(0.78, 0.12)
   )
 
 png(filename = here::here("plots", "p_livlipid_fit_obs.png"), width = 169, height = 90, units = "mm", res = 300)
@@ -406,7 +406,7 @@ p_cond_pred_obs <-
     levels = c("Null", "HSI", "Fatmeter", "Morphometric", "FT-NIR"),
     labels = c("Null GLM", "HSI GLM", "Fatmeter GLM", "Morphometric GLM", "FT-NIR PLSR"))
   ) +
-  scale_y_continuous(name = "Predicted liver lipid (%)") +
+  scale_y_continuous(name = "Predicted liver lipid (%)", limits = c(15, 85)) +
   scale_x_continuous(name = "Observed liver lipid (%)") +
   scale_fill_manual(name = "Year", values = c("#40B0A6", "#5D3A9B")) +
   scale_shape_manual(name = "Year", values = c(21,24)) +
