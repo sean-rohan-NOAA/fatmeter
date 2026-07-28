@@ -250,7 +250,8 @@ fit_beta_glm <- function(x, formulas_df, common_name, model_name_prefix = "m") {
             formula = formulas_df$formula[[index]], 
             disp = formulas_df$disp[[index]],
             family = beta_family(link = "logit"), 
-            data = x
+            data = x,
+            REML = FALSE
           )
         
         mod

@@ -67,6 +67,8 @@ predict_fits <-
   function(model, newdata, re.form = NULL, 
            allow.new.levels = TRUE, ...) {
     
+    model <- update(model, REML = TRUE)
+    
     invlink_fn <- model$modelInfo$family$linkinv
     
     pred <- predict(
@@ -275,7 +277,6 @@ for(ii in 1:nrow(best_p_livlipid_models)) {
     predict_fits(
       model = sel_results$results_liver_lipid$model_list[[best_p_livlipid_models$model_name[ii]]],
       newdata = pred_vars[[best_p_livlipid_models$category[ii]]],
-      # re.form = NULL,
       allow.new.levels = TRUE
     ) |>
     dplyr::mutate(
@@ -432,20 +433,20 @@ dev.off()
 
 # Correlations among different condition metrics ----
 
-# Custom function to calculate r^2 and p-value
+# Custom function to calculate r and p-value
 plot_cor_grid <- function(data, mapping, ...) {
   x <- eval_data_col(data, mapping$x)
   y <- eval_data_col(data, mapping$y)
   
   test <- cor.test(x, y)
-  r_sq <- test$estimate^2
+  r <- test$estimate
   p_val <- test$p.value
   
   sig <- symnum(p_val, corr = FALSE, na = FALSE,
                 cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                 symbols = c("***", "**", "*", ".", "ns"))
   
-  lbl <- paste0("r²= ", format(round(r_sq, 2), nsmall = 2), "\n",
+  lbl <- paste0("r= ", format(round(r, 2), nsmall = 2), "\n",
                 "p", ifelse(p_val < 0.001, "<0.001", paste0("=", format(p_val, digits = 2))), "\n",
                 "(", sig, ")")
   
@@ -462,7 +463,7 @@ df_pcod <- pcod_results$dat_complete_liver |>
     HSI = HSI_PCT, 
     `Liv. lipid` = LIVLIPID, 
     NLE = RELATIVE_LIVER_ENERGY, 
-    TLE = TOTAL_LIVER_ENERGY,
+    # LED = LIVER_ENERGY_DENSITY,
     MCI = LOG_LW_RESID, 
     RCI = RELATIVE_CONDITION,
     `FT-NIR lipid` = Lipid_pred_cal
@@ -503,7 +504,7 @@ df_wp <- wp_results$dat_complete_liver |>
     HSI = HSI_PCT, 
     `Liv. lipid` = LIVLIPID, 
     NLE = RELATIVE_LIVER_ENERGY, 
-    TLE = TOTAL_LIVER_ENERGY,
+    # LED = LIVER_ENERGY_DENSITY,
     MCI = LOG_LW_RESID, 
     RCI = RELATIVE_CONDITION,
     `FT-NIR lipid` = Lipid_pred_cal
