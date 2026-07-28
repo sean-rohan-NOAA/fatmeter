@@ -5,7 +5,7 @@ library(GGally)
 
 # Best P_liver lipid models -----
 # Outside of R: selected models for each predictor type based on parsimony (using AIC) and diagnostics.
-# Added choices to a spreadsheet
+# Added choices to csvs (Best model tables below)
 
 # Load model outputs
 load(here::here("output", paste0("wp_results.rda")))
@@ -45,7 +45,7 @@ ftnir_metrics <-
   )
 
 
-# Best models table -----
+# Best models tables -----
 model_table <- 
   dplyr::bind_rows(
   read.csv(file = here::here("plots", "WP_liver_model_table.csv")) |>

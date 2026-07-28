@@ -13,16 +13,24 @@ library(glmmTMB)
 
 # Calculate total liver energy function ----
 
-calc_liver_energy <- function(prop_lipid, liver_mass, lean_protein_ed = 23.6, lipid_ed = 39.5) {
-  
+calc_liver_energy <- function(prop_lipid, liver_mass, lean_protein_ed = 23.6, lipid_ed = 39.5, 
+                              include_protein = FALSE) {
+    
   lipid_mass <- liver_mass * prop_lipid
   other_mass <- liver_mass - lipid_mass
   lipid_energy <- lipid_mass * lipid_ed
-  lean_protein_energy <- other_mass * lean_protein_ed
+  
+  # Option to include protein. In gadids, protein is structural and won't be catabolized for energy
+  if(include_protein == TRUE) {
+    lean_protein_energy <- other_mass * lean_protein_ed
+  } else {
+    lean_protein_energy <- 0
+  }
   
   total_energy <- lipid_energy + lean_protein_energy
   
-  energy_density <- total_energy/liver_mass
+  energy_density <- total_energy/liver_mass  
+
   
   return(
     data.frame(
@@ -439,8 +447,7 @@ for(ii in 1:length(spp_abbv)) {
       dat_complete_liver = dat_complete_liver,
       dat_complete_muscle = dat_complete_muscle,
       results_muscle_lipid = results_muscle_lipid,
-      results_liver_lipid = results_liver_lipid,
-      lw_model = lw_mod
+      results_liver_lipid = results_liver_lipid
     )
   )
   
