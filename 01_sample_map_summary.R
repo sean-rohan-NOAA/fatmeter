@@ -1,6 +1,6 @@
 # Make sample map
 
-library(akgfmaps)
+library(akgfmaps) # GitHub: afsc-gap-products/akgfmaps
 library(ggthemes)
 library(shadowtext)
 

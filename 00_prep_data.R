@@ -1,4 +1,4 @@
-library(akgfmaps)
+library(akgfmaps) # GitHub: afsc-gap-products/akgfmaps
 library(readxl)
 library(dplyr)
 library(stringr)
